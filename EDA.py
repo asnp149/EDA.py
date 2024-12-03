@@ -3,6 +3,7 @@ Created on Wed Nov 27 10:28:29 2024
 Author: Alejandro Sanchez Pellon
 DATASET LINK: https://www.kaggle.com/datasets/yusufdelikkaya/datascience-salaries-2024
 """
+
 """
 DATASET COLUMNS:
 
@@ -188,7 +189,7 @@ class EDA:
 
 ##---------------------------------------------------------------DATA CLEANING AND PRE-PROCESSING------------------------------------------------------------------------------------
 
-    ##---------------------------------------------------------------EXPLORATORY DATA ANALYSIS------------------------------------------------------------------------------------
+##---------------------------------------------------------------EXPLORATORY DATA ANALYSIS------------------------------------------------------------------------------------
 
     def summary_statistics(self):
         if self.data is None:
@@ -540,28 +541,6 @@ class EDA:
         r = 1 - (2 * u_stat) / (n1 * n2)
         return r
 
-    def posthoc_kruskal_wallis(self, groups, group_names, alpha=0.05):
-        """
-        Performs post-hoc pairwise Mann-Whitney U Tests after a significant Kruskal-Wallis Test.
-
-        Args:
-            groups (list of pd.Series): The data groups to test.
-            group_names (list): Names of the groups.
-            alpha (float): Significance level.
-
-        Returns:
-            None: Prints the results of pairwise comparisons.
-        """
-        print("\nPost-Hoc Pairwise Mann-Whitney U Tests:")
-        for (i, group1), (j, group2) in combinations(zip(group_names, groups), 2):
-            u_stat, p_value = stats.mannwhitneyu(group1, group2, alternative='two-sided')
-            print(f"\nComparing '{i}' vs '{j}':")
-            print(f"Mann-Whitney U Test: U-statistic={u_stat}, p-value={p_value:.4f}")
-            if p_value < alpha:
-                print("Reject the null hypothesis - Significant difference.")
-            else:
-                print("Fail to reject the null hypothesis - No significant difference.")
-
     def plot_violin_salary_by_job_title(self, *job_titles):
         """
         Plots violin plots for salaries of specified job titles.
@@ -681,49 +660,6 @@ class EDA:
         plt.tight_layout()
         plt.show()
 
-    def test_experience_level_impact_on_salary(self):
-        """
-        Performs the Kruskal-Wallis H Test to determine if there are significant differences
-        in salaries across different experience levels.
-
-        Null Hypothesis:
-            There is no significant difference in salaries across different experience levels.
-        """
-        column_name = 'experience_level'
-        salary_column = 'salary_in_usd'
-
-        if column_name in self.data.columns:
-            try:
-                # Decode experience levels if encoded
-                if column_name in self.label_encoders:
-                    exp_levels = self.decode_categorical_data(column_name)
-                    self.data['decoded_' + column_name] = exp_levels
-                else:
-                    exp_levels = self.data[column_name]
-                    self.data['decoded_' + column_name] = exp_levels
-
-                print("\nExperience Levels:", set(exp_levels))
-
-                # Group salary data by decoded experience level
-                groups = [self.data[self.data['decoded_' + column_name] == level][salary_column].dropna()
-                          for level in sorted(self.data['decoded_' + column_name].unique())]
-                group_names = sorted(self.data['decoded_' + column_name].unique())
-
-                # Perform Kruskal-Wallis H Test
-                print("\nPerforming Kruskal-Wallis H Test:")
-                stat, p = stats.kruskal(*groups)
-                print(f'Kruskal-Wallis Test statistic={stat:.4f}, p-value={p:.4f}')
-
-                if p < 0.05:
-                    print("Reject the null hypothesis - Significant differences exist between experience levels.")
-                    # Perform Post-Hoc Tests
-                    self.posthoc_kruskal_wallis(groups, group_names, alpha=0.05)
-                else:
-                    print("Fail to reject the null hypothesis - No significant difference in salary across experience levels.")
-            except Exception as e:
-                print(f"Error during hypothesis testing: {e}")
-        else:
-            print(f"Column '{column_name}' not found in the dataset.")
 
     def compare_job_salaries_2tTest(self, job_title1, job_title2):
         """
@@ -905,9 +841,6 @@ class EDA:
             None: Prints the regression results and displays relevant plots.
         """
         import statsmodels.api as sm
-        import matplotlib.pyplot as plt
-        import seaborn as sns
-
         if self.data is None:
             print("Data not loaded. Please load the data first.")
             return
@@ -975,8 +908,6 @@ class EDA:
         Returns:
             summaries (dict): Dictionary containing summary DataFrames for each variable.
         """
-        import pandas as pd
-
         if self.data is None:
             print("Data not loaded. Please load the data first.")
             return
@@ -1058,51 +989,28 @@ eda.handle_outliers(method='cap')
 columns_to_remove = ['salary', 'salary_currency']
 eda.remove_columns(columns_to_remove)
 
-#eda.distribution_analysis()
 
+#eda.distribution_analysis()
+#eda.summary_statistics()
+eda.summary_salary_statistics()
 eda.correlation_analysis()
 eda.plot_salary_by_company_size()
 eda.plot_salary_by_top_employee_residences()
 eda.plot_salary_by_top_job_titles()
 eda.plot_salary_by_experience_level()
+# Test the impact of remote work ratio on salary
+eda.test_remote_ratio_impact_on_salary()
+# Plot the violin plot for salary distribution across experience levels
+eda.plot_violin_salary_by_experience_level()
+# 6e. Violin Plot for 'Data Science' vs 'Applied Scientist'
+eda.plot_violin_salary_by_job_title('Data Science', 'Applied Scientist', 'Machine Learning Engineer')
 
-
-
-#eda.summary_statistics()
-eda.summary_salary_statistics()
-
-#eda.correlation_analysis()
-
-# 6a. Test the impact of experience level on salary
-#print("\n=== Test: Impact of Experience Level on Salary ===")
-#eda.test_experience_level_impact_on_salary()
 
 # 6b. Compare salaries between 'Data Science' and 'Applied Scientist' roles
 # Ensure that these job titles exist in your dataset; adjust if necessary
-#print("\n=== Test: Compare Salaries between 'Data Science' and 'Applied Scientist' ===")
-#eda.compare_job_salaries_2tTest('Data Science', 'Applied Scientist')
+print("\n=== Test: Compare Salaries between 'Data Science' and 'Applied Scientist' ===")
+eda.compare_job_salaries_2tTest('Data Science', 'Applied Scientist')
 
 # 6c. Compare the average salary against a hypothesized average of $149,000
-#print("\n=== Test: Compare Average Salary against Hypothesized Average of $121,593 ===")
-#eda.salary_average_tTest(121593, 'Data Scientist')
-
-# Optional: Generate Visualizations
-# Uncomment the following lines if you wish to create visual plots
-
-# 6d. Q-Q Plot for 'salary_in_usd'
-#eda.plot_qq(eda.data['salary_in_usd'], 'salary_in_usd')
-
-# 6e. Violin Plot for 'Data Science' vs 'Applied Scientist'
-#eda.plot_violin_salary_by_job_title('Data Science', 'Applied Scientist', 'Machine Learning Engineer')
-
-# Plot the violin plot for salary distribution across experience levels
-eda.plot_violin_salary_by_experience_level()
-eda.plot_salary_by_experience_level()
-
-# Test the impact of remote work ratio on salary
-eda.test_remote_ratio_impact_on_salary()
-
-# Additional Recommendations:
-# - Implement effect size calculations for each test to understand the magnitude of differences.
-# - Perform post-hoc tests after the Kruskal-Wallis Test if significant differences are found.
-# - Automate report generation using libraries like `matplotlib` or `seaborn` for visualizations.
+print("\n=== Test: Compare Average Salary against Hypothesized Average of $121,593 ===")
+eda.salary_average_tTest(121593, 'Data Scientist')
